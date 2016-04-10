@@ -1,0 +1,18 @@
+{
+  "name": "chromatag",
+  "version": "1.0.0",
+  "private": false,
+  "scripts": {
+    "start": "node app.js",
+    "postinstall": "node node_modules/bower/bin/bower install"
+  },
+  "dependencies": {
+    "bower": "1.5.3",
+    "compression": "1.6.0",
+    "express": "^4.13.4",
+    "serve-favicon": "2.3.0"
+  },
+  "engines": {
+    "node": "4.1.x"
+  }
+}
