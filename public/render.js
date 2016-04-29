@@ -7,9 +7,9 @@ var geometry = new THREE.PlaneGeometry(1, 1);
 geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5, 0.5, 0));
 var material = new THREE.ShaderMaterial({
   uniforms: {
-    width: { value: 1280 },
-    height: { value: 1024 },
-    image: { type: 't', texture: THREE.ImageUtils.loadTexture( 'skysphere1.jpg' )}
+    width: { type: 'i', value: 1280 },
+    height: { type: 'i', value: 1024 },
+    image: { type: 't', value: new THREE.TextureLoader().load( "data/LightHue.png") }
   },
   vertexShader: document.getElementById('vertex-shader').textContent,
   fragmentShader: document.getElementById('fragment-shader').textContent

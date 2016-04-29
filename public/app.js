@@ -4,7 +4,7 @@ var renderer = new THREE.WebGLRenderer({
   canvas: canvas,
   antialias: true
 });
-var camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientWidth, 0.1, 10000);
+var camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientWidth, 0.0001, 10000);
 
 var composer = new THREE.EffectComposer( renderer );
 composer.addPass( new THREE.RenderPass( scene, camera ) );
@@ -62,27 +62,27 @@ var light1 = new THREE.PointLight('#fff', 1, 0);
 light1.position.set(0, 0, 5);
 scene.add(light1);
 
-var lightHelper = new THREE.PointLightHelper(light1, 1);
-scene.add(lightHelper);
+// var lightHelper = new THREE.PointLightHelper(light1, 1);
+// scene.add(lightHelper);
 
 // Light
 var light2 = new THREE.PointLight('#fff', 1, 0);
 light2.position.set(0, 0, -5);
 scene.add(light2);
 
-var lightHelper = new THREE.PointLightHelper(light2, 1);
-scene.add(lightHelper);
+// var lightHelper = new THREE.PointLightHelper(light2, 1);
+// scene.add(lightHelper);
 
 
 function vertexToColor(v) {
   // v.x and v.y go from -1 to 1
   // need to map to hue
   var angle = Math.atan2(v.y, v.x) / (Math.PI * 2);
-  var distance = Math.sqrt(v.y * v.y + v.x * v.x) / Math.sqrt(2);
-  return new THREE.Color().setHSL(-angle, Math.sqrt(distance), 1.0 - Math.sqrt(distance));
+  var distance = Math.sqrt(v.y * v.y + v.x * v.x);
+  return new THREE.Color().setHSL(angle, Math.sqrt(distance), 1.0 - Math.sqrt(distance));
 }
 
-var geometry = new THREE.SphereGeometry(1, 50, 50);
+var geometry = new THREE.SphereGeometry(1, 100, 100);
 var faces = ['a', 'b', 'c'];
 for (var i = 0; i < geometry.faces.length; i++) {
   var face = geometry.faces[i];
@@ -92,11 +92,12 @@ for (var i = 0; i < geometry.faces.length; i++) {
   }
 }
 var material = new THREE.MeshPhongMaterial({
-  color: '#fff',
   shininess: 0,
+  shading: THREE.SmoothShading,
   vertexColors: THREE.VertexColors
 });
 var mesh = new THREE.Mesh(geometry, material);
+mesh.wireframe = true;
 mesh.scale.z = 0.01;
 
 scene.add(mesh);
@@ -130,7 +131,7 @@ function render(time) {
     camera.updateProjectionMatrix();
   }
 
-  lightHelper.update();
+  // lightHelper.update();
   controls.update();
   composer.render(scene, camera);
 }

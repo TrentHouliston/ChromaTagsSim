@@ -13,7 +13,7 @@
     </head>
     <body>
 
-        <canvas id="canvas" width=2048 height=2048></canvas>
+        <canvas id="canvas" width=4096 height=4096></canvas>
         <script id="vertex-shader" type="x-shader/x-vertex">
             varying vec2 vUv;
 
@@ -23,7 +23,6 @@
             }
         </script>
         <script id="fragment-shader" type="x-shader/x-fragment">
-
             #define M_PI 3.1415926535897932384626433832795
             #define M_SQRT2 1.41421356237309504880
 
@@ -35,47 +34,173 @@
             /**
              * @brief Converts a colour in RGB to HSL
              *
-             * @param colour a vec4 containing the RGBA value
-             * @return       a vec4 containing the HSLA value
+             * @param colour a vec3 containing the RGB value
+             * @return       a vec3 containing the HLS value
              */
-            vec4 rgb2hsl(vec4 colour) {
+            vec3 rgb2hls(vec3 colour) {
 
-                float r = colour.r;
-                float g = colour.g;
-                float b = colour.b;
+                float maxc = max(max(colour.r, colour.g), colour.b);
+                float minc = min(min(colour.r, colour.g), colour.b);
 
-                float cMax = max(max(r, g), b);
-                float cMin = min(min(r, g), b);
+                float h = 0.0;
+                float l = (minc + maxc) / 2.0;
+                float s = 0.0;
 
-                float h;
-                float s;
-                float l = (cMin + cMax) / 2.0;
+                if (minc == maxc)
+                    return vec3(h, l, s);
 
-                if (cMin == cMax) {
-                    h = 0.0;
-                    s = 0.0;
-                }
-                else {
+                if (l <= 0.5)
+                    s = (maxc - minc) / (maxc + minc);
+                else
+                    s = (maxc - minc) / (2.0 - maxc - minc);
 
-                    float delta = cMax - cMin;
+                float rc = (maxc - colour.r) / (maxc - minc);
+                float gc = (maxc - colour.g) / (maxc - minc);
+                float bc = (maxc - colour.b) / (maxc - minc);
 
-                    s = l <= 0.5 ? delta / (cMax + cMin) : delta / (2.0 - cMax - cMin);
+                if (colour.r == maxc)
+                    h = bc - gc;
+                else if (colour.g == maxc)
+                    h = 2.0 + rc - bc;
+                else
+                    h = 4.0 + gc - rc;
 
-                    s = delta / abs(2.0 * l - 1.0);
+                h = mod(h / 6.0, 1.0);
 
-                    if      (cMax == r) h = (g - b) / delta + (g < b ? 6.0 : 0.0);
-                    else if (cMax == g) h = (b - r) / delta + 2.0;
-                    else if (cMax == b) h = (r - g) / delta + 4.0;
-
-                    h /= 6.0;
-                }
-
-                return vec4(h, s, l, colour.a);
+                return vec3(h, l, s);
             }
 
             void main() {
+                // Number of pixels to use on the line
+                const int lineSize = 7;
 
-                gl_FragColor = texture2D(image, vUv);
+                // Number of pixels to jump out for the gradient
+                const int jumpSize = 10;
+
+                // Make our cardinal directions vector
+                mat3 directions[3];
+                directions[0][0] = vec3(-M_SQRT2,  -M_SQRT2, 0.0); // - -
+                directions[0][1] = vec3(    -1.0,   0.0    , 0.0); // - 0
+                directions[0][2] = vec3(-M_SQRT2,   M_SQRT2, 0.0); // - +
+                directions[1][0] = vec3(     0.0,  -1.0    , 0.0); // 0 -
+                directions[1][1] = vec3(     0.0,   0.0    , 0.0);
+                directions[1][2] = vec3(     0.0,   1.0    , 0.0); // 0 +
+                directions[2][0] = vec3( M_SQRT2,  -M_SQRT2, 0.0); // + -
+                directions[2][1] = vec3(     1.0,   0.0    , 0.0); // + 0
+                directions[2][2] = vec3( M_SQRT2,   M_SQRT2, 0.0); // + +
+
+                // 1 pixel of movement up/down left/right
+                float ns = 1.0 / float(height);
+                float ew = 1.0 / float(width);
+
+                // Get our centre pixel location (every lineSize pixels)
+                vec2 c = vec2(vUv.x - mod(vUv.x, float(lineSize) * ew) + ((ew * float(lineSize)) / 2.0)
+                            , vUv.y - mod(vUv.y, float(lineSize) * ns) + ((ns * float(lineSize)) / 2.0));
+
+                vec4 realColour = texture2D(image, vUv);
+
+                // Get our surrounding pixel values
+                mat3 pixels[3];
+                for (int x = -1; x < 2; ++x) {
+                    for (int y = -1; y < 2; ++y) {
+                        pixels[x + 1][y + 1] = texture2D(image, vec2(c.x + float(x) * ew * float(jumpSize), c.y + float(y) * ns * float(jumpSize))).rgb;
+                    }
+                }
+
+                // Vectors to store the direction values
+                mat3 rgbDir = mat3(0,0,0,0,0,0,0,0,0);
+                mat3 hlsDir = mat3(0,0,0,0,0,0,0,0,0);
+                mat3 glsDir = mat3(0,0,0,0,0,0,0,0,0);
+
+                // Get our difference values for each pixel and add it into the vector
+                for (int x = 0; x < 2; ++x) {
+                    for (int y = 0; y < 2; ++y) {
+
+                        // Our centre pixel in RGB, HSL and GHSL
+                        vec3 rgbC = pixels[1][1];
+                        vec3 hlsC = rgb2hls(rgbC);
+                        vec3 glsC = rgb2hls(vec3(1.0 - rgbC.r, rgbC.g, 1.0 - rgbC.b)).rgb;
+
+                        // Pixel on one side of the shape
+                        vec3 rgb1 = pixels[1 + x][1 + y];
+                        vec3 hls1 = rgb2hls(rgb1);
+                        vec3 gls1 = rgb2hls(vec3(1.0 - rgb1.r, rgb1.g, 1.0 - rgb1.b)).rgb;
+
+                        // Pixel on the other side of the shape
+                        vec3 rgb2 = pixels[1 - x][1 - y];
+                        vec3 hls2 = rgb2hls(rgb2);
+                        vec3 gls2 = rgb2hls(vec3(1.0 - rgb2.r, rgb2.g, 1.0 - rgb2.b)).rgb;
+
+                        // Difference between the two RGB values
+                        vec3 rgbD1 = rgb1 - rgbC;
+                        vec3 rgbD2 = rgb2 - rgbC;
+
+                        rgbDir[0].xy = rgbDir[0].xy + (rgbD1.r * directions[1 + x][1 + y].xy);
+                        rgbDir[1].xy = rgbDir[1].xy + (rgbD1.g * directions[1 + x][1 + y].xy);
+                        rgbDir[2].xy = rgbDir[2].xy + (rgbD1.b * directions[1 + x][1 + y].xy);
+
+                        rgbDir[0].xy = rgbDir[0].xy + (rgbD2.r * directions[1 - x][1 - y].xy);
+                        rgbDir[1].xy = rgbDir[1].xy + (rgbD2.g * directions[1 - x][1 - y].xy);
+                        rgbDir[2].xy = rgbDir[2].xy + (rgbD2.b * directions[1 - x][1 - y].xy);
+
+                        // Difference between the two HSL values
+                        vec3 hlsD1 = hls1 - hlsC;
+                        vec3 hlsD2 = hls2 - hlsC;
+
+                        hlsDir[0].xy = hlsDir[0].xy + (mod(hlsD1.r, 1.0) * directions[1 + x][1 + y].xy);
+                        hlsDir[1].xy = hlsDir[1].xy + (hlsD1.g * directions[1 + x][1 + y].xy);
+                        hlsDir[2].xy = hlsDir[2].xy + (hlsD1.b * directions[1 + x][1 + y].xy);
+
+                        hlsDir[0].xy = hlsDir[0].xy + (hlsD2.r * directions[1 - x][1 - y].xy);
+                        hlsDir[1].xy = hlsDir[1].xy + (hlsD2.g * directions[1 - x][1 - y].xy);
+                        hlsDir[2].xy = hlsDir[2].xy + (hlsD2.b * directions[1 - x][1 - y].xy);
+
+                        // Difference between the two GHSL values
+                        vec3 glsD1 = gls1 - glsC;
+                        vec3 glsD2 = gls2 - glsC;
+
+                        glsDir[0].xy = glsDir[0].xy + (mod(glsD1.r, 1.0) * directions[1 + x][1 + y].xy);
+                        glsDir[1].xy = glsDir[1].xy + (glsD1.g * directions[1 + x][1 + y].xy);
+                        glsDir[2].xy = glsDir[2].xy + (glsD1.b * directions[1 + x][1 + y].xy);
+
+                        glsDir[0].xy = glsDir[0].xy + (glsD2.r * directions[1 - x][1 - y].xy);
+                        glsDir[1].xy = glsDir[1].xy + (glsD2.g * directions[1 - x][1 - y].xy);
+                        glsDir[2].xy = glsDir[2].xy + (glsD2.b * directions[1 - x][1 - y].xy);
+                    }
+                }
+
+                // Now that we know our line direction shade our pixel based on how close we are to it
+                vec2 point = vUv - c;
+                vec2 line1 = hlsDir[0].xy;
+
+                // This value is an indication of how close to "perfect" our shape is
+                float value = cross(hlsDir[1], hlsDir[0]).z;
+
+                // Get the distance to the point from this line and the distance along it (direction)
+                float d2p = 1.0 - abs(dot(point, normalize(vec2(-line1.y, line1.x))) / (float(lineSize) * ew));
+                float d2t = (dot(normalize(point), normalize(line1)) + 1.0) / 2.0;
+
+                float r = d2p * d2p;// * sqrt(sqrt(d2t)) ;//* d2t;
+
+
+
+                // float g = dot(point, (glsDir[1].xy / 8.0)) / (float(lineSize) * ew);
+                // float b = dot(point, (glsDir[2].xy / 8.0)) / (float(lineSize) * ew);
+
+                // r = 0.0;
+                // b = 0.0;
+
+                // value = value > 0.5 ? 1.0 : 0.0;
+
+                vec3 colour = (realColour.rgb * (1.0 - r)) + vec3(r,r,r);
+                // colour = (realColour * value);
+
+                gl_FragColor = vec4(colour, 1.0);
+
+                if(realColour.a == 0.0) {
+                    gl_FragColor = vec4(0,0,0,1);
+                }
+                // gl_FragColor = realColour;
             }
         </script>
 

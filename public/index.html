@@ -22,7 +22,7 @@
     </head>
     <body>
 
-        <canvas id="canvas" width=1024 height=1024></canvas>
+        <canvas id="canvas" width=2048 height=2048></canvas>
         <script id="vertex-shader" type="x-shader/x-vertex">
             varying vec2 vUv;
 
@@ -91,8 +91,8 @@
                 const float noiseThreshold = (5.0/255.0) * (5.0/255.0);
 
                 // 1 pixel of movement up/down left/right
-                float ns = 1.0 / float(height);
-                float ew = 1.0 / float(width);
+                float ns = 5.0 / float(height);
+                float ew = 5.0 / float(width);
 
                 // Make our cardinal directions vector
                 vec2 unitDirections[8];
@@ -107,6 +107,7 @@
 
                 // Get the surrounding 8 pixels as HSL values
                 vec4 pixelValues[8];
+                // Above and to left therefore accessing pixel down and to the right
                 pixelValues[0] = rgb2hsl(texture2D(tDiffuse, vec2(vUv.x + ns, vUv.y - ew)));
                 pixelValues[1] = rgb2hsl(texture2D(tDiffuse, vec2(vUv.x + ns, vUv.y     )));
                 pixelValues[2] = rgb2hsl(texture2D(tDiffuse, vec2(vUv.x + ns, vUv.y + ew)));
@@ -149,26 +150,29 @@
                     lDir = lDir + (unitDirections[i * 2] * pixelDifferences[i * 2].b);
                 }
 
-                // Rotate the hDir vector by 90 degrees to face the same direction
-                hDir = vec2(hDir.y, -hDir.x);
+
 
                 // Normalise the vectors
                 hDir = normalize(hDir);
                 sDir = normalize(sDir);
                 lDir = normalize(lDir);
 
-                // Rotate the h vector by 90 degrees to face the same direction
-                // as the lightness and saturation vectors
+                // Cross the two vectors
+                vec3 cVec = cross(vec3(hDir,0), vec3(lDir,0));
 
                 // Dot each pair together
-                float v = (dot(hDir, sDir) + dot(hDir, lDir) + dot(sDir, lDir)) / 3.0;
+                float v = dot(hDir, lDir);
                 // v = valid ? v : 0.0;
 
                 // float v = (1.0 + dot(lDir, sDir)) * 0.5;
                 if (vUv.x > 0.5) {
                     gl_FragColor = colour;
                 } else {
-                    gl_FragColor = vec4(v,v,v, 1.0);
+                    gl_FragColor = vec4(mod(lDir,1.0),0.0,1.0);//vec4(v,v,v, 1.0);
+                    gl_FragColor = vec4(mod(hDir,1.0),0.0,1.0);//vec4(v,v,v, 1.0);
+                    gl_FragColor = vec4(cVec.zzz,1.0);
+                    // gl_FragColor = vec4(pixelDifferences[0],1.0);
+                    // gl_FragColor = pixelValues[0];
                 }
 
 
