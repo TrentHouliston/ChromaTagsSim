@@ -75,7 +75,7 @@
                 const int lineSize = 7;
 
                 // Number of pixels to jump out for the gradient
-                const int jumpSize = 10;
+                const int jumpSize = 20;
 
                 // Make our cardinal directions vector
                 mat3 directions[3];
@@ -151,7 +151,7 @@
                         hlsDir[1].xy = hlsDir[1].xy + (hlsD1.g * directions[1 + x][1 + y].xy);
                         hlsDir[2].xy = hlsDir[2].xy + (hlsD1.b * directions[1 + x][1 + y].xy);
 
-                        hlsDir[0].xy = hlsDir[0].xy + (hlsD2.r * directions[1 - x][1 - y].xy);
+                        hlsDir[0].xy = hlsDir[0].xy + (mod(hlsD2.r, 1.0) * directions[1 - x][1 - y].xy);
                         hlsDir[1].xy = hlsDir[1].xy + (hlsD2.g * directions[1 - x][1 - y].xy);
                         hlsDir[2].xy = hlsDir[2].xy + (hlsD2.b * directions[1 - x][1 - y].xy);
 
@@ -163,7 +163,7 @@
                         glsDir[1].xy = glsDir[1].xy + (glsD1.g * directions[1 + x][1 + y].xy);
                         glsDir[2].xy = glsDir[2].xy + (glsD1.b * directions[1 + x][1 + y].xy);
 
-                        glsDir[0].xy = glsDir[0].xy + (glsD2.r * directions[1 - x][1 - y].xy);
+                        glsDir[0].xy = glsDir[0].xy + (mod(glsD2.r, 1.0) * directions[1 - x][1 - y].xy);
                         glsDir[1].xy = glsDir[1].xy + (glsD2.g * directions[1 - x][1 - y].xy);
                         glsDir[2].xy = glsDir[2].xy + (glsD2.b * directions[1 - x][1 - y].xy);
                     }
@@ -180,7 +180,8 @@
                 float d2p = 1.0 - abs(dot(point, normalize(vec2(-line1.y, line1.x))) / (float(lineSize) * ew));
                 float d2t = (dot(normalize(point), normalize(line1)) + 1.0) / 2.0;
 
-                float r = d2p * d2p;// * sqrt(sqrt(d2t)) ;//* d2t;
+                float r = d2p * d2p * d2p;// * sqrt(sqrt(d2t)) ;//* d2t;
+                r = r > 0.8 ? 1.0 : 0.0;
 
 
 
