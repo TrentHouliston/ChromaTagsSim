@@ -13,7 +13,7 @@
     </head>
     <body>
 
-        <canvas id="canvas" width=4096 height=4096></canvas>
+        <canvas id="canvas"></canvas>
         <script id="vertex-shader" type="x-shader/x-vertex">
             varying vec2 vUv;
 
@@ -72,10 +72,10 @@
 
             void main() {
                 // Number of pixels to use on the line
-                const int lineSize = 7;
+                const int lineSize = 20;
 
                 // Number of pixels to jump out for the gradient
-                const int jumpSize = 20;
+                const int jumpSize = 10;
 
                 // Make our cardinal directions vector
                 mat3 directions[3];
@@ -103,7 +103,35 @@
                 mat3 pixels[3];
                 for (int x = -1; x < 2; ++x) {
                     for (int y = -1; y < 2; ++y) {
-                        pixels[x + 1][y + 1] = texture2D(image, vec2(c.x + float(x) * ew * float(jumpSize), c.y + float(y) * ns * float(jumpSize))).rgb;
+                        pixels[1 + x][1 + y] = texture2D(image, vec2(c.x + float(x) * ew * float(jumpSize), c.y + float(y) * ns * float(jumpSize))).rgb;
+                    }
+                }
+
+                // Calculate our colour deltas for each pixel
+                mat3 rgbDeltas[3];
+                mat3 hlsDeltas[3];
+                mat3 glsDeltas[3];
+                for (int x = -1; x < 2; ++x) {
+                    for (int y = -1; y < 2; ++y) {
+
+                        // Our centre pixel in RGB, HLS and GLS
+                        vec3 rgbC = pixels[1][1];
+                        vec3 hlsC = rgb2hls(rgbC);
+                        vec3 glsC = rgb2hls(vec3(1.0 - rgbC.r, rgbC.g, 1.0 - rgbC.b));
+
+                        // Our side pixel in rgb hls and gls
+                        vec3 rgbS = pixels[1 + x][1 + y];
+                        vec3 hlsS = rgb2hls(rgbS);
+                        vec3 glsS = rgb2hls(vec3(1.0 - rgbS.r, rgbS.g, 1.0 - rgbS.b));
+
+                        // Difference between the two values values
+                        rgbDeltas[1 + x][1 + y] = rgbS - rgbC;
+                        hlsDeltas[1 + x][1 + y] = hlsS - hlsC;
+                        glsDeltas[1 + x][1 + y] = glsS - glsC;
+
+                        // Mod by 1 to correct rotation on hue components
+                        // hlsDeltas[1 + x][1 + y].x = mod(hlsDeltas[x + 1][y + 1].x, 1.0);
+                        // glsDeltas[1 + x][1 + y].x = mod(hlsDeltas[x + 1][y + 1].x, 1.0);
                     }
                 }
 
@@ -116,56 +144,32 @@
                 for (int x = 0; x < 2; ++x) {
                     for (int y = 0; y < 2; ++y) {
 
-                        // Our centre pixel in RGB, HSL and GHSL
-                        vec3 rgbC = pixels[1][1];
-                        vec3 hlsC = rgb2hls(rgbC);
-                        vec3 glsC = rgb2hls(vec3(1.0 - rgbC.r, rgbC.g, 1.0 - rgbC.b)).rgb;
+                        // rgb directions
+                        rgbDir[0].xy = rgbDir[0].xy + (rgbDeltas[1 + x][1 + y].r * directions[1 + x][1 + y].xy);
+                        rgbDir[1].xy = rgbDir[1].xy + (rgbDeltas[1 + x][1 + y].g * directions[1 + x][1 + y].xy);
+                        rgbDir[2].xy = rgbDir[2].xy + (rgbDeltas[1 + x][1 + y].b * directions[1 + x][1 + y].xy);
 
-                        // Pixel on one side of the shape
-                        vec3 rgb1 = pixels[1 + x][1 + y];
-                        vec3 hls1 = rgb2hls(rgb1);
-                        vec3 gls1 = rgb2hls(vec3(1.0 - rgb1.r, rgb1.g, 1.0 - rgb1.b)).rgb;
+                        rgbDir[0].xy = rgbDir[0].xy + (rgbDeltas[1 - x][1 - y].r * directions[1 - x][1 - y].xy);
+                        rgbDir[1].xy = rgbDir[1].xy + (rgbDeltas[1 - x][1 - y].g * directions[1 - x][1 - y].xy);
+                        rgbDir[2].xy = rgbDir[2].xy + (rgbDeltas[1 - x][1 - y].b * directions[1 - x][1 - y].xy);
 
-                        // Pixel on the other side of the shape
-                        vec3 rgb2 = pixels[1 - x][1 - y];
-                        vec3 hls2 = rgb2hls(rgb2);
-                        vec3 gls2 = rgb2hls(vec3(1.0 - rgb2.r, rgb2.g, 1.0 - rgb2.b)).rgb;
+                        // hls directions
+                        hlsDir[0].xy = hlsDir[0].xy + (hlsDeltas[1 + x][1 + y].r * directions[1 + x][1 + y].xy);
+                        hlsDir[1].xy = hlsDir[1].xy + (hlsDeltas[1 + x][1 + y].g * directions[1 + x][1 + y].xy);
+                        hlsDir[2].xy = hlsDir[2].xy + (hlsDeltas[1 + x][1 + y].b * directions[1 + x][1 + y].xy);
 
-                        // Difference between the two RGB values
-                        vec3 rgbD1 = rgb1 - rgbC;
-                        vec3 rgbD2 = rgb2 - rgbC;
+                        hlsDir[0].xy = hlsDir[0].xy + (hlsDeltas[1 - x][1 - y].r * directions[1 - x][1 - y].xy);
+                        hlsDir[1].xy = hlsDir[1].xy + (hlsDeltas[1 - x][1 - y].g * directions[1 - x][1 - y].xy);
+                        hlsDir[2].xy = hlsDir[2].xy + (hlsDeltas[1 - x][1 - y].b * directions[1 - x][1 - y].xy);
 
-                        rgbDir[0].xy = rgbDir[0].xy + (rgbD1.r * directions[1 + x][1 + y].xy);
-                        rgbDir[1].xy = rgbDir[1].xy + (rgbD1.g * directions[1 + x][1 + y].xy);
-                        rgbDir[2].xy = rgbDir[2].xy + (rgbD1.b * directions[1 + x][1 + y].xy);
+                        // gls directions
+                        glsDir[0].xy = glsDir[0].xy + (glsDeltas[1 + x][1 + y].r * directions[1 + x][1 + y].xy);
+                        glsDir[1].xy = glsDir[1].xy + (glsDeltas[1 + x][1 + y].g * directions[1 + x][1 + y].xy);
+                        glsDir[2].xy = glsDir[2].xy + (glsDeltas[1 + x][1 + y].b * directions[1 + x][1 + y].xy);
 
-                        rgbDir[0].xy = rgbDir[0].xy + (rgbD2.r * directions[1 - x][1 - y].xy);
-                        rgbDir[1].xy = rgbDir[1].xy + (rgbD2.g * directions[1 - x][1 - y].xy);
-                        rgbDir[2].xy = rgbDir[2].xy + (rgbD2.b * directions[1 - x][1 - y].xy);
-
-                        // Difference between the two HSL values
-                        vec3 hlsD1 = hls1 - hlsC;
-                        vec3 hlsD2 = hls2 - hlsC;
-
-                        hlsDir[0].xy = hlsDir[0].xy + (mod(hlsD1.r, 1.0) * directions[1 + x][1 + y].xy);
-                        hlsDir[1].xy = hlsDir[1].xy + (hlsD1.g * directions[1 + x][1 + y].xy);
-                        hlsDir[2].xy = hlsDir[2].xy + (hlsD1.b * directions[1 + x][1 + y].xy);
-
-                        hlsDir[0].xy = hlsDir[0].xy + (mod(hlsD2.r, 1.0) * directions[1 - x][1 - y].xy);
-                        hlsDir[1].xy = hlsDir[1].xy + (hlsD2.g * directions[1 - x][1 - y].xy);
-                        hlsDir[2].xy = hlsDir[2].xy + (hlsD2.b * directions[1 - x][1 - y].xy);
-
-                        // Difference between the two GHSL values
-                        vec3 glsD1 = gls1 - glsC;
-                        vec3 glsD2 = gls2 - glsC;
-
-                        glsDir[0].xy = glsDir[0].xy + (mod(glsD1.r, 1.0) * directions[1 + x][1 + y].xy);
-                        glsDir[1].xy = glsDir[1].xy + (glsD1.g * directions[1 + x][1 + y].xy);
-                        glsDir[2].xy = glsDir[2].xy + (glsD1.b * directions[1 + x][1 + y].xy);
-
-                        glsDir[0].xy = glsDir[0].xy + (mod(glsD2.r, 1.0) * directions[1 - x][1 - y].xy);
-                        glsDir[1].xy = glsDir[1].xy + (glsD2.g * directions[1 - x][1 - y].xy);
-                        glsDir[2].xy = glsDir[2].xy + (glsD2.b * directions[1 - x][1 - y].xy);
+                        glsDir[0].xy = glsDir[0].xy + (glsDeltas[1 - x][1 - y].r * directions[1 - x][1 - y].xy);
+                        glsDir[1].xy = glsDir[1].xy + (glsDeltas[1 - x][1 - y].g * directions[1 - x][1 - y].xy);
+                        glsDir[2].xy = glsDir[2].xy + (glsDeltas[1 - x][1 - y].b * directions[1 - x][1 - y].xy);
                     }
                 }
 
@@ -181,7 +185,7 @@
                 float d2t = (dot(normalize(point), normalize(line1)) + 1.0) / 2.0;
 
                 float r = d2p * d2p * d2p;// * sqrt(sqrt(d2t)) ;//* d2t;
-                r = r > 0.8 ? 1.0 : 0.0;
+                r = r > 0.7 ? 1.0 : 0.0;
 
 
 
@@ -195,6 +199,10 @@
 
                 vec3 colour = (realColour.rgb * (1.0 - r)) + vec3(r,r,r);
                 // colour = (realColour * value);
+
+                float range = 1.0 + 2.0 * M_SQRT2;
+                // colour = (hlsDeltas[2][0].rrr + 1.0) / 2.0;
+                // colour = rgb2hls(realColour.rgb).rrr;
 
                 gl_FragColor = vec4(colour, 1.0);
 

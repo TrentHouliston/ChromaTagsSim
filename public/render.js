@@ -9,8 +9,8 @@ var geometry = new THREE.PlaneGeometry(1, 1);
 // geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0.5, 0.5, 0));
 var material = new THREE.ShaderMaterial({
   uniforms: {
-    width: { type: 'i', value: 1280 },
-    height: { type: 'i', value: 1024 },
+    width: { type: 'i', value: 2048 },
+    height: { type: 'i', value: 2048 },
     image: { type: 't', value: new THREE.TextureLoader().load("data/LightHue.png", function() {
       render();
     }) }
