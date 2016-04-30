@@ -7,6 +7,11 @@ module.exports = {
 		path: __dirname + '/dist',
 		filename: 'app_bundle.js'
 	},
+  resolve: {
+    alias: {
+      'three_examples': 'three/examples/js/'
+    }
+  },
   resolveLoader: {
     root: __dirname + '/node_modules'
   },
@@ -23,7 +28,8 @@ module.exports = {
 	},
   plugins: [
     new webpack.ProvidePlugin({
-      $: 'jquery'
+      $: 'jquery',
+      THREE: 'three'
     })
   ],
   devtool: 'inline-source-map'
