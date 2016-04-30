@@ -1,6 +1,5 @@
 node_modules/
 .idea/
-public/lib/
 *.sublime-workspace
 app/configuration.yaml
 npm-debug.log
