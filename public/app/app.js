@@ -43,7 +43,7 @@ export class App {
 
   createOriginalPlane() {
     return new Promise(resolve => {
-      this.textureLoader.load('data/Square.png', texture => {
+      this.textureLoader.load('data/rgb5.png', texture => {
         const geometry = new THREE.PlaneGeometry(5, 5);
         const material = new THREE.MeshBasicMaterial({
           map: texture
@@ -55,7 +55,7 @@ export class App {
 
   createProcessedPlane() {
     return new Promise(resolve => {
-      this.textureLoader.load('data/Square.png', texture => {
+      this.textureLoader.load('data/rgb5.png', texture => {
         const renderTarget = new THREE.WebGLRenderTarget(texture.image.width, texture.image.height, {
           stencilBuffer: false,
           depthBuffer: false
