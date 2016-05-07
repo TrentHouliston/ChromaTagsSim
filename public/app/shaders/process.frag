@@ -1,6 +1,3 @@
-#define M_PI 3.1415926535897932384626433832795
-#define M_SQRT2 1.41421356237309504880
-
 varying vec2 vUv;
 uniform sampler2D tDiffuse;
 uniform int width;

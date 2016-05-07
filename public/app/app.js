@@ -5,8 +5,11 @@ import 'three_examples/postprocessing/ShaderPass';
 import 'three_examples/postprocessing/TexturePass';
 import 'three_examples/postprocessing/MaskPass';
 import 'three_examples/shaders/CopyShader';
-import vertexShader from 'text-loader!./shaders/shader.vert';
-import fragmentShader from 'text-loader!./shaders/shader.frag';
+import vertexShader from 'text-loader!./shaders/process.vert';
+import fragmentShader from 'text-loader!./shaders/process.frag';
+
+import gridVertexShader from 'text-loader!./shaders/grid.vert';
+import gridFragmentShader from 'text-loader!./shaders/grid.frag';
 
 export class App {
   constructor(opts) {
@@ -19,32 +22,36 @@ export class App {
     this.camera = new THREE.PerspectiveCamera(75, this.canvas.clientWidth / this.canvas.clientWidth, 0.01, 1000);
     this.textureLoader = new THREE.TextureLoader();
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-    this.camera.position.z = 5;
+    this.camera.position.z = 1;
   }
   
   createScene() {
     return Promise.all([
-      this.createAxisHelper().then(mesh => this.scene.add(mesh)),
+      // this.createAxisHelper().then(mesh => this.scene.add(mesh)),
       this.createOriginalPlane().then(mesh => {
-        mesh.position.x = -3;
-        this.scene.add(mesh)
+        // mesh.position.x = -3/5;
+        // this.scene.add(mesh)
       }),
       this.createProcessedPlane().then(mesh => {
-        mesh.position.x = 3;
+        // mesh.position.x = 3/5;
         this.scene.add(mesh);
+        return this.createGridFromPlane(mesh).then(grid => {
+          grid.position.z = 0.001;
+          this.scene.add(grid);
+        });
       })
     ]);
   }
 
   createAxisHelper() {
-    const helper = new THREE.AxisHelper(5, 5, 5);
+    const helper = new THREE.AxisHelper(1, 1, 1);
     return Promise.resolve(helper);
   }
 
   createOriginalPlane() {
     return new Promise(resolve => {
       this.textureLoader.load('data/rgb5.png', texture => {
-        const geometry = new THREE.PlaneGeometry(5, 5);
+        const geometry = new THREE.PlaneGeometry(1, 1);
         const material = new THREE.MeshBasicMaterial({
           map: texture
         });
@@ -79,7 +86,7 @@ export class App {
         
         composer.render();
         
-        const geometry = new THREE.PlaneGeometry(5, 5);
+        const geometry = new THREE.PlaneGeometry(1, 1);
         const material = new THREE.MeshBasicMaterial({
           map: renderTarget
         });
@@ -87,6 +94,28 @@ export class App {
         resolve(new THREE.Mesh(geometry, material));
       });
     });
+  }
+  
+  createGridFromPlane(mesh) {
+    const geometry = new THREE.Geometry();
+    const numLines = 50;
+    for (let y = 0; y < numLines; y++) {
+      for (let x = 0; x < numLines; x++) {
+        const vertex = new THREE.Vector3(x / numLines, y / numLines, 0);
+        geometry.vertices.push(vertex);
+        geometry.vertices.push(vertex.clone().setZ(1));
+      }
+    }
+    const material = new THREE.ShaderMaterial({
+      vertexShader: gridVertexShader,
+      fragmentShader: gridFragmentShader,
+      // linewidth: 5,
+      uniforms: {
+        tDiffuse: {type: 't', value: mesh.material.map}
+      }
+    });
+    const grid = new THREE.LineSegments(geometry, material);
+    return Promise.resolve(grid);
   }
 
   render() {
