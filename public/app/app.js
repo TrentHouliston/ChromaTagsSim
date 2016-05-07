@@ -1,5 +1,10 @@
 import THREE from 'three';
 import 'three_examples/controls/OrbitControls';
+import 'three_examples/postprocessing/EffectComposer';
+import 'three_examples/postprocessing/ShaderPass';
+import 'three_examples/postprocessing/TexturePass';
+import 'three_examples/postprocessing/MaskPass';
+import 'three_examples/shaders/CopyShader';
 import vertexShader from 'text-loader!./shaders/shader.vert';
 import fragmentShader from 'text-loader!./shaders/shader.frag';
 
@@ -20,7 +25,14 @@ export class App {
   createScene() {
     return Promise.all([
       this.createAxisHelper().then(mesh => this.scene.add(mesh)),
-      this.createPlane().then(mesh => this.scene.add(mesh))
+      this.createOriginalPlane().then(mesh => {
+        mesh.position.x = -3;
+        this.scene.add(mesh)
+      }),
+      this.createProcessedPlane().then(mesh => {
+        mesh.position.x = 3;
+        this.scene.add(mesh);
+      })
     ]);
   }
 
@@ -29,19 +41,49 @@ export class App {
     return Promise.resolve(helper);
   }
 
-  createPlane() {
+  createOriginalPlane() {
     return new Promise(resolve => {
-      this.textureLoader.load('data/LightHue.png', texture => {
+      this.textureLoader.load('data/Square.png', texture => {
         const geometry = new THREE.PlaneGeometry(5, 5);
-        const material = new THREE.ShaderMaterial({
+        const material = new THREE.MeshBasicMaterial({
+          map: texture
+        });
+        resolve(new THREE.Mesh(geometry, material));
+      });
+    });
+  }
+
+  createProcessedPlane() {
+    return new Promise(resolve => {
+      this.textureLoader.load('data/Square.png', texture => {
+        const renderTarget = new THREE.WebGLRenderTarget(texture.image.width, texture.image.height, {
+          stencilBuffer: false,
+          depthBuffer: false
+        });
+        const composer = new THREE.EffectComposer(this.renderer, renderTarget);
+
+        const texturePass = new THREE.TexturePass(texture);
+        composer.addPass(texturePass);
+
+        const shader = new THREE.ShaderMaterial({
           vertexShader: vertexShader,
           fragmentShader: fragmentShader,
           uniforms: {
+            tDiffuse: {type: 't', value: null},
             width: {type: 'i', value: texture.image.width},
-            height: {type: 'i', value: texture.image.height},
-            image: {type: 't', value: texture}
+            height: {type: 'i', value: texture.image.height}
           }
         });
+        const shaderPass = new THREE.ShaderPass(shader);
+        composer.addPass(shaderPass);
+        
+        composer.render();
+        
+        const geometry = new THREE.PlaneGeometry(5, 5);
+        const material = new THREE.MeshBasicMaterial({
+          map: renderTarget
+        });
+        
         resolve(new THREE.Mesh(geometry, material));
       });
     });

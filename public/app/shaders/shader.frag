@@ -2,7 +2,7 @@
 #define M_SQRT2 1.41421356237309504880
 
 varying vec2 vUv;
-uniform sampler2D image;
+uniform sampler2D tDiffuse;
 uniform int width;
 uniform int height;
 
@@ -71,13 +71,13 @@ void main() {
   vec2 c = vec2(vUv.x - mod(vUv.x, float(lineSize) * ew) + ((ew * float(lineSize)) / 2.0)
         , vUv.y - mod(vUv.y, float(lineSize) * ns) + ((ns * float(lineSize)) / 2.0));
 
-  vec4 realColour = texture2D(image, vUv);
+  vec4 realColour = texture2D(tDiffuse, vUv);
 
   // Get our surrounding pixel values
   mat3 pixels[3];
   for (int x = -1; x < 2; ++x) {
     for (int y = -1; y < 2; ++y) {
-      pixels[1 + x][1 + y] = texture2D(image, vec2(c.x + float(x) * ew * float(jumpSize), c.y + float(y) * ns * float(jumpSize))).rgb;
+      pixels[1 + x][1 + y] = texture2D(tDiffuse, vec2(c.x + float(x) * ew * float(jumpSize), c.y + float(y) * ns * float(jumpSize))).rgb;
     }
   }
 
