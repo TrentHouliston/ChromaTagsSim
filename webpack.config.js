@@ -24,11 +24,11 @@ module.exports = {
   },
 	devServer: {
 		contentBase: 'public',
-		hot: true
+		hot: true,
+		compress: true
 	},
   plugins: [
     new webpack.ProvidePlugin({
-      $: 'jquery',
       THREE: 'three'
     })
   ],

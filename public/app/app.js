@@ -30,7 +30,7 @@ export class App {
       // this.createAxisHelper().then(mesh => this.scene.add(mesh)),
       this.createOriginalPlane().then(mesh => {
         // mesh.position.x = -3/5;
-        // this.scene.add(mesh)
+        //this.scene.add(mesh)
       }),
       this.createProcessedPlane().then(mesh => {
         // mesh.position.x = 3/5;
@@ -98,7 +98,7 @@ export class App {
   
   createGridFromPlane(mesh) {
     const geometry = new THREE.Geometry();
-    const numLines = 50;
+    const numLines = 400;
     for (let y = 0; y < numLines; y++) {
       for (let x = 0; x < numLines; x++) {
         const vertex = new THREE.Vector3(x / numLines, y / numLines, 0);
@@ -111,10 +111,12 @@ export class App {
       fragmentShader: gridFragmentShader,
       // linewidth: 5,
       uniforms: {
-        tDiffuse: {type: 't', value: mesh.material.map}
+        tDiffuse: {type: 't', value: mesh.material.map},
+        numLines: {type: 'i', value: numLines}
       }
     });
     const grid = new THREE.LineSegments(geometry, material);
+    grid.frustumCulled = false;
     return Promise.resolve(grid);
   }
 
