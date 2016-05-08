@@ -19,7 +19,7 @@ export class App {
       antialias: true
     });
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, this.canvas.clientWidth / this.canvas.clientWidth, 0.01, 1000);
+    this.camera = new THREE.PerspectiveCamera(50, this.canvas.clientWidth / this.canvas.clientWidth, 0.01, 1000);
     this.textureLoader = new THREE.TextureLoader();
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.camera.position.z = 1;
@@ -30,7 +30,7 @@ export class App {
       // this.createAxisHelper().then(mesh => this.scene.add(mesh)),
       this.createOriginalPlane().then(mesh => {
         // mesh.position.x = -3/5;
-        //this.scene.add(mesh)
+        // this.scene.add(mesh)
       }),
       this.createProcessedPlane().then(mesh => {
         // mesh.position.x = 3/5;
@@ -50,7 +50,7 @@ export class App {
 
   createOriginalPlane() {
     return new Promise(resolve => {
-      this.textureLoader.load('data/rgb5.png', texture => {
+      this.textureLoader.load('data/rgb6.png', texture => {
         const geometry = new THREE.PlaneGeometry(1, 1);
         const material = new THREE.MeshBasicMaterial({
           map: texture
@@ -62,7 +62,7 @@ export class App {
 
   createProcessedPlane() {
     return new Promise(resolve => {
-      this.textureLoader.load('data/rgb5.png', texture => {
+      this.textureLoader.load('data/rgb6.png', texture => {
         const renderTarget = new THREE.WebGLRenderTarget(texture.image.width, texture.image.height, {
           stencilBuffer: false,
           depthBuffer: false
@@ -98,7 +98,7 @@ export class App {
   
   createGridFromPlane(mesh) {
     const geometry = new THREE.Geometry();
-    const numLines = 400;
+    const numLines = 0;
     for (let y = 0; y < numLines; y++) {
       for (let x = 0; x < numLines; x++) {
         const vertex = new THREE.Vector3(x / numLines, y / numLines, 0);

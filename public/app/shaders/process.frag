@@ -41,38 +41,58 @@ vec3 rgb2hls(vec3 colour) {
   return vec3(h, l, s);
 }
 
+vec3 convertColour(vec3 inColour) {
+  return rgb2hls(inColour);
+  // return rgb2hls(vec3(1.0 - inColour.r, inColour.g, 1.0 - inColour.b));
+}
+
 void main() {
   vec3 original = texture2D(tDiffuse, vUv).rgb;
+  original = convertColour(original);
   
-  original = rgb2hls(original);
   float pixelJump = 5.0;
 
   float tdx = pixelJump / float(width);
   float tdy = pixelJump / float(height);
 
-  vec2 total = vec2(0, 0);
+  vec2 hDir = vec2(0, 0);
+  vec2 lDir = vec2(0, 0);
+  vec2 sDir = vec2(0, 0);
+  bool valid = true;
 
   for (int dy = -1; dy <= 1; dy++) {
     for (int dx = -1; dx <= 1; dx++) {
-      vec2 neighbor = vUv + vec2(float(dx) * tdx, float(dy) * tdy);
+      
+      // Distance to the neigboring pixels we are checking
+      vec2 neighborOffset = vec2(float(dx) * tdx, float(dy) * tdy);
+      
+      // Look at neighbours on either side
+      vec2 neighbor = vUv + neighborOffset;
+      
+      // Get the colours of our neighbours
       vec3 neighborColor = texture2D(tDiffuse, neighbor).rgb;
-      neighborColor = rgb2hls(neighborColor);
 
+      // Convert colours to hls
+      neighborColor = convertColour(neighborColor);
+
+      // Get the difference between the two colours
       vec3 delta = neighborColor - original;
+      
+      // Normalise the angles
+      delta.x = mod(delta.x, 0.5);
+      
+      // Get a unit vector for the direction
       vec2 dir = normalize(vec2(dx, dy));
 
-      total = total + dir * delta.r;// + dir * delta.g + dir * delta.b;
+      hDir = hDir + dir * delta.r;
+      lDir = lDir + dir * delta.g;
     }
   }
   
-  // The most a gradient can possibly be is 1.0
-  total = (total + 1.0) / 2.0;
-
-  vec3 color = vec3(total, 0);
-
-//  if (vUv.y > 0.5) {
-//    color = original;
-//  }
-
+  // z component cross product identifies the valid regions
+  float v = cross(vec3(lDir, 0), vec3(hDir, 0)).z;
+  
+  vec3 color = vec3((lDir + 1.0) / 2.0, 0);
+  color = vec3(v,v,v);
   gl_FragColor = vec4(color, 1);
 }
